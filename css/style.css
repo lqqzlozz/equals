@@ -1,0 +1,323 @@
+/* EQuals のどのページでも使う見た目 */
+:root {
+  --bg: #1a1b18;
+  --tile: #262722;
+  --fg: #dddbd0;
+  --sub: #8a897f;
+  --or: #ff6a1f;
+  --ye: #f2d21f;
+}
+* { box-sizing: border-box; margin: 0; }
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--fg); font: 500 16px/1.7 system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+button { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--or); outline-offset: 4px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }   /* 画面には出さず、読み上げ用に名前だけ置く */
+
+/* 1画面目: 名前の頭文字だけが出てる → 押すと言葉が伸びて、そのままPVに変わる */
+#hr { position: relative; display: grid; place-items: center; height: 100svh; overflow: hidden; }
+#go, #st { grid-area: 1 / 1; }
+#go { position: relative; display: grid; place-items: center; width: 100%; height: 100%; transition: opacity .4s; }
+.eq {
+  --u: min(13.4vw, 11svh, 88px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, var(--u));
+  height: calc(var(--u) * 6);
+  color: var(--sub);
+  font: 700 calc(var(--u) * .9)/1 Jost, sans-serif;
+  perspective: 700px;
+}
+.eq.one { height: var(--u); }
+.eq.all { --u: min(11.6vw, 50px); }
+.eq.all span { opacity: 1; }
+.eq span { display: flex; align-items: center; justify-content: center; width: var(--u); height: var(--u); opacity: 0; }
+.eq .h { color: var(--fg); opacity: 1; }
+.eq .h:nth-child(-n + 2) { color: var(--or); }   /* E と Q */
+/* 最初は、ロゴを画面の真ん中あたりまで下げておく 押されたら、左の文字から順に、PV が出る場所の上の端あたりへ持ち上がる */
+#hr { --ph: calc(min(100vw, 640px, (100svh - 150px) * .8) * 1.25); }   /* PV の高さ */
+#go .eq { align-self: start; margin-top: calc((100svh - var(--ph)) / 2 + 20px); }   /* 言葉の束の上の端 = PV の上の端の少し下 */
+#go .eq .h { transform: translateY(calc(var(--ph) / 2 - var(--u) * 1.5 - 20px)); transition: transform .55s cubic-bezier(.2, 1.3, .4, 1); transition-delay: calc(var(--c) * 55ms); }
+#go .eq .by { transform: translateY(calc(var(--ph) / 2 - var(--u) * 1.5 - 20px)); }
+.w #go .eq .h, .p #go .eq .h { transform: none; }
+.eq .by { position: absolute; top: calc(var(--u) + 2px); right: calc(var(--u) * .2); display: block; width: auto; height: auto; color: var(--sub); font: 700 14px/1 Jost, sans-serif; letter-spacing: .05em; white-space: nowrap; opacity: 1; }
+/* ずらずらー: 左の列から、上から下へ */
+.w .eq span:not(.h):not(.by) { animation: flip .28s both; animation-delay: calc(var(--c) * 70ms + var(--r) * 80ms + 430ms); }   /* ロゴが上がりきるのを少し待ってから */
+/* tap tap tap は画面の真ん中あたり、名前のすぐ下に浮かせる */
+.tap { position: absolute; top: calc(50% - min(13.4vw, 11svh, 88px) * .5 + 34px); right: 0; left: 0; display: flex; justify-content: center; gap: 18px; color: var(--sub); font: 700 22px/1 Jost, sans-serif; transition: opacity .25s; }
+.tap span, .fi { animation: fw 2.6s ease-in-out infinite; }
+.tap span:nth-child(2) { animation-duration: 3.1s; animation-delay: -.9s; }
+.tap span:nth-child(3) { animation-duration: 2.3s; animation-delay: -1.6s; }
+@keyframes fw {
+  0%, 100% { transform: translateY(5px) rotate(-3deg); }
+  50% { transform: translateY(-7px) rotate(3deg); }
+}
+.eq .by { transition: opacity .2s; }
+.eq.all .by { top: calc(var(--u) * 6 + 2px); }
+.w .tap, .p .tap, .w #go .by { opacity: 0; }   /* 言葉が伸びてくる場所なので、押したら譲る */
+#st { opacity: 0; pointer-events: none; transition: opacity .5s; }
+.p #go { opacity: 0; pointer-events: none; }
+.p #st { opacity: 1; }
+/* PVの下: 下へ行く案内(見てる途中でも行ける) 終わったら「もう一度」も出る */
+#af { position: absolute; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); left: 0; display: flex; align-items: center; justify-content: center; gap: 18px; opacity: 0; pointer-events: none; transition: opacity .4s; }
+.p #af { opacity: 1; pointer-events: auto; }
+#sd { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 14px; color: var(--sub); font: 700 15px/1 Jost, sans-serif; letter-spacing: .06em; text-decoration: none; }
+#sd i { font-style: normal; animation: dn 1.5s ease-in-out infinite; }
+@keyframes dn {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(5px); }
+}
+#ag { display: none; }
+.e #ag { display: grid; }
+.bt { display: grid; place-items: center; height: 48px; padding: 0 20px; border-radius: 16px; background: var(--tile); font-size: 15px; font-weight: 800; text-decoration: none; }
+
+/* 明るい見た目(上の帯のスイッチで切り替える 何もしなければ暗いほう) */
+:root[data-th="l"] { --bg: #e9e7dd; --tile: #dcdacf; --fg: #1a1b18; --sub: #77766c; --or: #e0500a; }
+/* PV は動画なので、いつも暗いまま 明るい見た目のときに浮かないよう、角は丸めておく */
+#st { --bg: #1a1b18; --tile: #262722; --fg: #dddbd0; --sub: #8a897f; --or: #ff6a1f; border-radius: 28px; }
+body, #nv, #ov, #ld, .bt, .dl, .tg { transition: background-color .35s, color .35s; }
+/* 切り替えスイッチ: 暗いときは月(欠けた丸)、明るいときは太陽(オレンジの丸) つまみが形を変えながら滑る */
+.tg { position: relative; flex: none; width: 50px; height: 30px; border-radius: 15px; background: var(--tile); }
+.tg::before { content: ""; position: absolute; top: -8px; right: -4px; bottom: -8px; left: -4px; }   /* 押せる範囲を広げる */
+.tg i { position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--fg); overflow: hidden; transition: transform .45s cubic-bezier(.3, 1.5, .5, 1), background-color .35s; }
+.tg i::after { content: ""; position: absolute; top: -5px; left: 8px; width: 20px; height: 20px; border-radius: 50%; background: var(--tile); transition: transform .45s cubic-bezier(.3, 1.2, .5, 1), background-color .35s; }
+[data-th="l"] .tg i { background: var(--or); transform: translateX(20px); }
+[data-th="l"] .tg i::after { transform: translate(18px, -14px); }
+#nv .tg { display: block; height: 30px; }
+
+/* 上の帯: 最初の画面ではメニューだけ 下へ行ったら左に名前も出る */
+#nv { position: fixed; top: 0; right: 0; left: 0; z-index: 15; display: flex; align-items: center; gap: min(14px, 3.2vw); height: calc(env(safe-area-inset-top, 0px) + 52px); padding: env(safe-area-inset-top, 0px) 16px 0; background: var(--bg); font-size: min(13px, 3.5vw); font-weight: 800; }
+#nv .nl { display: flex; align-items: center; gap: 8px; margin-right: auto; font: 700 20px/1 Jost, sans-serif; text-decoration: none; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#nv .nl i, .fb b i { color: var(--or); font-style: normal; }
+#nv .nl svg { flex: none; width: 28px; height: 28px; border-radius: 26%; box-shadow: 0 0 0 1.5px var(--tile); }
+.dn #nv .nl { opacity: 1; pointer-events: auto; }
+/* 幅の狭いスマホでは、左はアイコンだけにする(名前まで出すとメニューが収まらない) */
+@media (max-width: 480px) {
+  #nv .nl span { display: none; }
+}
+#nv button, #nv a:not(.nl) { display: grid; place-items: center; height: 44px; text-decoration: none; white-space: nowrap; }
+
+/* 2画面目: ロゴと、ふわふわ浮いてる5つのアイコン */
+#hm { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 52px; min-height: 100svh; padding: 72px 20px 40px; }
+#fw { position: relative; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.tap.t2 { position: static; }
+#fl { display: flex; flex-wrap: wrap; justify-content: center; gap: 26px min(18px, 3.5vw); max-width: 420px; }
+.fi { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(104px, 26vw); animation-duration: calc(2.4s + var(--n) * .37s); animation-delay: calc(var(--n) * -.83s); }
+.ic { display: block; flex: none; width: min(88px, 22vw); height: min(88px, 22vw); border-radius: 26%; box-shadow: 0 0 0 2px var(--tile); overflow: hidden; }
+.ic svg { display: block; width: 100%; height: 100%; }
+.fi b { font: 700 15px/1.2 Jost, sans-serif; white-space: nowrap; }
+
+.hb { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.ip { margin-top: -30px; color: var(--sub); font-size: 14px; }
+
+/* こんなアプリつくって！ と、その下の2つ(お知らせ・応援) */
+#rq { max-width: 680px; margin: 0 auto; padding: 56px 20px 88px; }
+#rq, #ig, #sp { scroll-margin-top: 60px; }
+#rq h2 { font-size: min(7.6vw, 44px); font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }
+#rq .ld { margin-top: 16px; font-size: min(3.9vw, 21px); font-weight: 800; line-height: 1.8; }
+#rq > .dl { margin-top: 28px; }
+.r2 { display: grid; gap: 40px; margin-top: 64px; padding-top: 44px; border-top: 2px solid var(--tile); }
+.r2 h3 { font-size: 19px; font-weight: 800; }
+.r2 p { margin-top: 8px; color: var(--sub); font-size: 14px; font-weight: 700; }
+.r2 .bt { width: fit-content; margin-top: 16px; }
+.lk:not([href]) { color: var(--sub); }   /* 行き先がまだ入ってないもの */
+@media (min-width: 640px) {
+  .r2 { grid-template-columns: 1fr 1fr; }
+}
+
+/* 新しく作ってるアプリ(一番下の手前) */
+#nw { max-width: 680px; margin: 0 auto; padding: 56px 20px 96px; border-top: 2px solid var(--tile); }
+.nk { color: var(--sub); font-size: 14px; font-weight: 800; }
+.nh { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+.nh .ic { width: 56px; height: 56px; }
+.nh h2 { font: 700 34px/1.1 Jost, sans-serif; }
+.nh h2 i { color: var(--or); font-style: normal; }
+#nw .ld { margin-top: 16px; font-size: min(4.4vw, 20px); font-weight: 800; line-height: 1.7; }
+.ns { display: flex; gap: 12px; margin-top: 26px; }
+/* full cord の動く見本: アプリの画面をまねた枠(ページが明るい見た目でも、ここは暗いまま) 中の大きさは枠の幅(cqw)を基準にする */
+.xm { position: relative; flex: 1; display: block; max-width: 250px; aspect-ratio: 9 / 16; border-radius: 22px; background: #1a1b18; box-shadow: 0 0 0 2px var(--tile); color: #dddbd0; text-align: left; overflow: hidden; container-type: inline-size; }
+.xt { display: flex; align-items: center; padding: 5cqw 5cqw 0; }
+.xt span { padding: 2.6cqw 4.6cqw; border-radius: 4.4cqw; background: #dddbd0; color: #1a1b18; font-size: 4.6cqw; font-weight: 800; }
+.xt i { margin-left: auto; color: #8a897f; font-size: 6.4cqw; font-style: normal; font-weight: 800; }
+.xf { display: flex; margin: 3.4cqw 5cqw 0; padding: 1.4cqw; border-radius: 5cqw; background: #262722; }
+.xf b { flex: 1; padding: 2.2cqw 0; border-radius: 3.8cqw; color: #8a897f; font: 700 4.2cqw/1 Jost, sans-serif; letter-spacing: .04em; text-align: center; }
+.xf .on { background: #1a1b18; color: #dddbd0; }
+.xc { margin: 6cqw 4.4cqw; font: 500 5.3cqw/1.75 ui-monospace, "Roboto Mono", "Noto Sans Mono", Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.xc b { font-weight: 500; }
+.xc .k { color: #ff6a1f; }
+.xc .n { color: #8fc7b5; }
+.xc .s { color: #e8c96a; }
+.xc .xr { display: inline-block; width: 2px; height: 1.15em; margin: 0 -1px; background: #ff6a1f; vertical-align: text-bottom; animation: dbl 1s steps(1) infinite; }
+.xp { text-align: center; }
+.xp span { display: block; }
+.xh { padding: 6cqw 6cqw 0; color: #dddbd0; font-size: 4.6cqw; font-weight: 800; text-align: left; }
+.xi { margin-top: 12cqw; font-size: 9cqw; font-weight: 800; }
+.xn { margin-top: 12cqw; font-size: 40cqw; font-weight: 800; line-height: 1; }
+.xb { width: fit-content; margin: 14cqw auto 0; padding: 5cqw 15cqw; border-radius: 7cqw; background: #ff6a1f; color: #1a1b18; font-size: 7.4cqw; font-weight: 800; transition: transform .1s; }
+.xp:active .xb, .xp.xq .xb { animation: dpr .28s; }
+.xk { margin-top: 7cqw; color: #8a897f; font: 700 7cqw/1 Jost, sans-serif; animation: fw 2.6s ease-in-out infinite; transition: opacity .4s; }
+.xp.ud .xk { opacity: 0; }
+.xn.xq { animation: dbp .3s; }
+@keyframes dbl {
+  50% { opacity: 0; }
+}
+@keyframes dbp {
+  40% { transform: scale(1.16); }
+}
+@keyframes dpr {
+  40% { transform: scale(.9); }
+}
+.nn { margin-top: 22px; color: var(--sub); font-size: 12px; font-weight: 500; line-height: 1.8; }
+#nw .il { margin-top: 12px; font-size: 16px; }
+
+/* 重ねて開く画面(アプリ・入れ方) アプリみたいにパッと開いて、✕か戻るで閉じる */
+#ov { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 20; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
+#ox { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 22; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--tile); font-size: 20px; font-weight: 800; line-height: 1; }
+.pg { display: none; flex-direction: column; min-height: 100%; padding-top: env(safe-area-inset-top, 0px); }
+.pg.on { display: flex; }
+.ob { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 680px; height: 70px; margin: 0 auto; padding: 0 72px 0 20px; }
+.pg:has(.rl) .ob, .pg:has(.rl) .oa { max-width: 1100px; }   /* アプリの画面は、スライドの幅に合わせて広め */
+.pg:has(.fw) .ob { max-width: 800px; }
+.ob .ic { width: 44px; height: 44px; }
+.ob h1 { font: 700 28px/1.1 Jost, sans-serif; }
+.pg[data-k="faq"] .ob h1 { color: var(--or); }
+.ob h1.jp { font: 800 26px/1.2 system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+.rl { display: flex; gap: 12px; width: 100%; max-width: 1100px; margin: auto; padding: 4px 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px; scrollbar-width: none; }
+.rl::-webkit-scrollbar { display: none; }
+.rl .sw { flex: none; width: min(80vw, 420px, (100svh - 190px) * .8); border-radius: 20px; box-shadow: 0 0 0 2px var(--tile); scroll-snap-align: start; }
+/* 画像が届くまでの間: = の2本の線が、上・下の順に左から右へ伸びる(読み込みの目盛りのように) 届いたら絵がふわっと出る */
+.sw { position: relative; display: block; background: var(--tile); overflow: hidden; }
+.sw::before, .sw::after, .fw::before, .fw::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 54px;
+  height: 13px;
+  margin-left: -27px;
+  border-radius: 7px;
+  background: linear-gradient(var(--or), var(--or)) no-repeat 0 0 / 0% 100% rgba(255, 106, 31, .2);
+  animation: ld 1.5s ease-in-out infinite;
+}
+.sw::before, .fw::before { margin-top: -16px; }
+.sw::after, .fw::after { margin-top: 3px; animation-delay: .2s; }
+@keyframes ld {
+  0% { background-size: 0% 100%; opacity: 0; }
+  10% { background-size: 0% 100%; opacity: 1; }
+  58%, 82% { background-size: 100% 100%; opacity: 1; }
+  100% { background-size: 100% 100%; opacity: 0; }
+}
+.sw img { position: relative; display: block; width: 100%; height: auto; opacity: 0; transition: opacity .35s; }
+.sw.ok { background: none; }
+.sw.ok::before, .sw.ok::after { display: none; }
+.sw.ok img { opacity: 1; }
+.oa { display: flex; gap: 10px; width: 100%; margin: 0 auto; padding: 14px 20px calc(env(safe-area-inset-bottom, 0px) + 18px); }
+.oa .dl { max-width: 420px; }   /* 広い画面で、ボタンが横いっぱいに伸びないように */
+/* 広い画面(PC): スライドは横にめくらず、3枚ずつ2段に全部並べる(マウスだと横にめくりにくいので) ボタンは下に貼りつけておく */
+@media (min-width: 900px) {
+  .rl { flex-wrap: wrap; justify-content: center; margin: 8px auto 0; overflow: visible; scroll-snap-type: none; }
+  .rl .sw { width: calc((100% - 24px) / 3); }
+  .pg:has(.rl) .oa { position: sticky; bottom: 0; background: var(--bg); }
+}
+.dl { flex: 1; display: grid; place-items: center; height: 56px; border-radius: 18px; background: var(--fg); color: var(--bg); font-size: 16px; font-weight: 800; text-decoration: none; }
+.dl:not([href]) { background: var(--tile); color: var(--sub); }   /* リンクがまだ入ってないもの */
+.oa .bt { height: 56px; border-radius: 18px; }
+.hw2 { max-width: 680px; margin: 0 auto; padding: 0 20px 40px; }
+.hw2 p { color: var(--sub); font-weight: 700; }
+.hw2 .sw { margin-top: 18px; border-radius: 22px; }
+/* 文章の画面(EQualsについて・FAQ) */
+.tx { width: 100%; max-width: 680px; margin: 0 auto; padding: 8px 20px 56px; }
+.ac { position: relative; width: fit-content; margin: 8px 0 56px; padding: 0; list-style: none; font: 700 40px/1.24 Jost, sans-serif; }
+.ac li { display: flex; align-items: baseline; }
+.ac b { font-weight: 700; }
+.ac li:nth-child(-n + 2) b { color: var(--or); }   /* E と Q */
+.ac span { color: var(--sub); }
+.ac i { margin-left: 16px; color: var(--sub); font: 700 14px/1 system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif; letter-spacing: .08em; white-space: nowrap; }
+.ac .by { position: absolute; top: calc(100% + 4px); right: 0; color: var(--sub); font: 700 14px/1 Jost, sans-serif; letter-spacing: .05em; }
+.tx p { margin-top: 16px; color: var(--sub); font-weight: 700; }
+.tx .ld { color: var(--fg); font-size: 24px; font-weight: 800; letter-spacing: -.01em; line-height: 1.5; }
+.qa dt { margin-top: 26px; padding-top: 26px; border-top: 2px solid var(--tile); font-size: 18px; font-weight: 800; line-height: 1.5; }   /* 質問ごとに薄い線で区切る */
+.qa dt:first-child { margin-top: 8px; padding-top: 0; border-top: 0; }
+.qa dd { margin: 8px 0 0; color: var(--sub); font-weight: 700; }
+.il { display: inline-flex; align-items: center; height: 40px; margin-top: 4px; color: var(--fg); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }   /* 答えの中の、案内先へ行くリンク */
+.il::after { content: "↗"; display: inline-block; margin-left: 5px; }
+.qa .cp { display: inline-grid; margin-top: 12px; color: var(--fg); }
+.tx .dy { margin-top: 40px; font-size: 13px; }
+.nt { display: block; margin-top: 8px; font-size: 12px; font-weight: 500; }
+/* アイコンのない画面は、すっと出す */
+.pg.on { animation: pin .22s ease-out; }
+@keyframes pin {
+  from { opacity: 0; transform: translateY(14px); }
+}
+
+/* 一番下 */
+#ft { border-top: 2px solid var(--tile); }
+#ft > div { display: grid; grid-template-columns: 1fr 1fr; gap: 36px 20px; max-width: 760px; margin: 0 auto; padding: 48px 20px calc(env(safe-area-inset-bottom, 0px) + 36px); }
+.fb { grid-column: 1 / -1; }
+.fb b { font: 700 30px/1 Jost, sans-serif; }
+.fb span { margin-left: 10px; color: var(--sub); font: 700 13px/1 Jost, sans-serif; letter-spacing: .05em; }
+.fb p { margin-top: 12px; color: var(--sub); font-size: 14px; font-weight: 700; }
+#ft h3 { color: var(--sub); font-size: 13px; font-weight: 700; }
+#ft ul { margin-top: 6px; padding: 0; list-style: none; }
+#ft li button, #ft li a { display: flex; align-items: center; height: 40px; font-size: 15px; font-weight: 800; text-decoration: none; }
+#ft li .jo { font: 700 16px/1 Jost, sans-serif; }
+.fs { grid-column: 1 / -1; padding-top: 22px; border-top: 2px solid var(--tile); color: var(--sub); font-size: 12px; font-weight: 500; line-height: 1.8; }
+.fs b { display: block; margin-top: 10px; font-weight: 700; }
+
+/* アイコンが膨らんで画面になる板 */
+.zm { position: fixed; z-index: 21; display: grid; place-items: center; background: var(--bg); box-shadow: 0 0 0 2px var(--tile); overflow: hidden; pointer-events: none; }
+.zm svg { width: 88px; height: 88px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .tap span, .fi, #sd i { animation: none; }
+  .w .eq span:not(.h):not(.by) { animation: none; opacity: 1; }
+  .pg.on { animation: none; }
+  #go .eq .h, .tg i, .tg i::after { transition: none; }
+  .xc .xr, .xp .xb, .xn.xq, .xk { animation: none; }
+  .sw::before, .sw::after, .fw::before, .fw::after { animation: none; background-size: 100% 100%; }
+}
+
+/* ---- ページを分けた形のための指定 ---- */
+.fi { text-decoration: none; }
+#nv .nl .ic { width: 28px; height: 28px; box-shadow: 0 0 0 1.5px var(--tile); }
+.pg { display: flex; }
+/* ページを直接開いたとき: 上の帯のぶん下げる 左上の名前は最初から出しておく */
+.sub { padding-top: 52px; }
+.sub #nv .nl { opacity: 1; pointer-events: auto; }
+.sub > .pg { min-height: calc(100svh - 52px); }
+/* 重ねて開いたとき */
+#oc .pg { min-height: 100svh; animation: pin .22s ease-out; }
+.tb { justify-content: flex-start; margin-top: 36px; }
+
+/* フォームを埋め込む枠: 題の下をいっぱいに使う フォームが届くまでは = の線が見えてる */
+.fw { position: relative; display: flex; flex: 1; width: calc(100% - 24px); max-width: 776px; min-height: 560px; margin: 0 auto 12px; border-radius: 20px; background: var(--tile); overflow: hidden; }
+.gf { position: relative; flex: 1; width: 100%; border: 0; }
+.fw.ok::before, .fw.ok::after { display: none; }
+
+/* 読み込み画面: 上の帯・一番下・文字の形がそろうまで、= の2本の線で待たせる */
+#ld { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 99; background: var(--bg); transition: opacity .3s; }
+#ld.off { opacity: 0; pointer-events: none; }
+#ld i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 54px;
+  height: 13px;
+  margin-left: -27px;
+  border-radius: 7px;
+  background: linear-gradient(var(--or), var(--or)) no-repeat 0 0 / 0% 100% rgba(255, 106, 31, .2);
+  animation: ld 1.5s ease-in-out infinite;
+}
+#ld i:first-child { margin-top: -16px; }
+#ld i + i { margin-top: 3px; animation-delay: .2s; }
+@media (prefers-reduced-motion: reduce) {
+  #ld i { animation: none; background-size: 100% 100%; }
+  #oc .pg { animation: none; }
+}
