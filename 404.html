@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>404 ページが見つかりません | EQuals</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1a1b18">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20192%20192%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22192%22%20height%3D%22192%22%20rx%3D%2248%22%20fill%3D%22%231a1b18%22/%3E%3Cpath%20d%3D%22M46%2077H146M46%20115H146%22%20stroke%3D%22%23ff6a1f%22%20stroke-width%3D%2227%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20transform%3D%22translate%28152%20136%29%20scale%280.72%29%20translate%28-132%20-97%29%22%20d%3D%22M149%2081C142%2068%20114%2069%20114%2084C114%2098%20150%2094%20150%20109C150%20124%20122%20125%20114%20113%22%20stroke%3D%22%231a1b18%22%20stroke-width%3D%2236%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20fill%3D%22none%22/%3E%3Cpath%20transform%3D%22translate%28152%20136%29%20scale%280.72%29%20translate%28-132%20-97%29%22%20d%3D%22M149%2081C142%2068%20114%2069%20114%2084C114%2098%20150%2094%20150%20109C150%20124%20122%20125%20114%20113%22%20stroke%3D%22%23dddbd0%22%20stroke-width%3D%2218%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20fill%3D%22none%22/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a1b18;
+  --tile: #262722;
+  --fg: #dddbd0;
+  --sub: #8a897f;
+  --or: #ff6a1f;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body { display: grid; place-items: center; height: 100%; background: var(--bg); color: var(--fg); font: 500 16px/1.7 system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif; -webkit-tap-highlight-color: transparent; }
+main { width: 100%; max-width: 480px; padding: 24px; }
+/* アイコンは、最初の画面の tap と同じようにふわふわ浮かせる */
+.ic { display: block; width: 72px; height: 72px; border-radius: 26%; box-shadow: 0 0 0 2px var(--tile); overflow: hidden; animation: fw 2.6s ease-in-out infinite; }
+.ic svg { display: block; width: 100%; height: 100%; }
+@keyframes fw {
+  0%, 100% { transform: translateY(5px) rotate(-3deg); }
+  50% { transform: translateY(-7px) rotate(3deg); }
+}
+h1 { margin-top: 36px; font: 700 min(10.4vw, 48px)/1.15 Jost, sans-serif; }
+p { margin-top: 12px; color: var(--sub); font-weight: 700; }
+.bs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }
+.bt { display: grid; place-items: center; height: 56px; padding: 0 24px; border: 0; border-radius: 18px; background: var(--tile); color: var(--fg); font: inherit; font-weight: 800; text-decoration: none; cursor: pointer; }
+.bt.on { background: var(--fg); color: var(--bg); }
+:focus-visible { outline: 3px solid var(--or); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .ic { animation: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <span class="ic"><svg viewBox="0 0 192 192" fill="none" aria-hidden="true"><rect width="192" height="192" fill="#1a1b18"/><path d="M46 77H146M46 115H146" stroke="#ff6a1f" stroke-width="27" stroke-linecap="round"/><path transform="translate(152 136) scale(0.72) translate(-132 -97)" d="M149 81C142 68 114 69 114 84C114 98 150 94 150 109C150 124 122 125 114 113" stroke="#1a1b18" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path transform="translate(152 136) scale(0.72) translate(-132 -97)" d="M149 81C142 68 114 69 114 84C114 98 150 94 150 109C150 124 122 125 114 113" stroke="#dddbd0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
+  <h1>404 not found</h1>
+  <p>ページが見つかりませんでした。</p>
+  <div class="bs">
+    <button type="button" class="bt" id="rl">再読み込み</button>
+    <a class="bt on" id="hm" href="/">EQuals TOP へ</a>
+  </div>
+</main>
+
+<script>
+// 最初の画面のアドレス 置いた場所に合わせて書く(例: '/equals/') 空のままなら、いまのアドレスから推し量る
+const HOME = '/equals/';
+const p = location.pathname.split('/');
+document.getElementById('rl').onclick = () => location.reload();
+document.getElementById('hm').href = HOME || (location.hostname.endsWith('.github.io') && p.length > 2 ? '/' + p[1] + '/' : '/');
+</script>
+</body>
+</html>
