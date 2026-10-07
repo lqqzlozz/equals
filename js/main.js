@@ -242,10 +242,15 @@ function bck() {
   if (dp > 0) return history.back();   // 中身の切り替えは下の popstate がやる
   cls();
 }
+const ME = location.pathname;   // いま読み込まれてるページが、もともとどのアドレスのものか
 addEventListener('popstate', ev => {
   const u = ev.state && ev.state.u;
   dp = Math.max(0, dp - 1);
-  if (u) opn(u, true);
+  // 重ねて開いたあとに読み込み直したり、フォームを送って戻ってきたりすると、
+  // 「アドレスは最初のページなのに、出てるのは別のページ」になることがある(ブラウザが中身を入れ替えてくれない)
+  // 戻った先が、このページでも、重ねて開く画面でもなければ、そのアドレスを読み込み直す
+  if (!u && location.pathname !== ME) return location.reload();
+  if (u && u !== ME) opn(u, true);
   else cls();
 });
 $('ox').onclick = bck;
