@@ -6,7 +6,7 @@
 <style>
   :root { color-scheme: dark; --bg:#1a1b18; --tile:#262722; --fg:#dddbd0; --sub:#a5a498; --or:#ff6a1f; --ye:#f2d21f; }
   * { box-sizing:border-box; }
-  body { margin:0; padding:24px 16px 36px; background:var(--bg); color:var(--fg); font:500 16px/1.55 system-ui,sans-serif; }
+  body { margin:0; min-height:100vh; padding:24px 16px 36px; background:var(--bg); color:var(--fg); font:500 16px/1.55 system-ui,sans-serif; touch-action:pan-y; }
   main { max-width:34rem; margin:auto; }
   header, nav { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   header { border-bottom:1px solid #45463d; padding-bottom:16px; }
@@ -16,9 +16,9 @@
   h2 { font-size:1.12rem; text-align:center; }
   small, time, .muted { color:var(--sub); }
   nav { margin:16px 0 20px; }
-  .cover { display:grid; justify-items:center; gap:12px; padding:26px 0 28px; }
-  .cover h2 { font-size:clamp(1.75rem, 8vw, 2.5rem); letter-spacing:.14em; line-height:1.1; }
-  .cover-icon { font-size:2.15rem; line-height:1.2; }
+  .modes { display:flex; flex-wrap:wrap; gap:8px; }
+  .modes button { font-size:.8rem; letter-spacing:.08em; }
+  .modes button[aria-pressed="true"] { color:var(--ye); box-shadow:inset 0 0 0 1px currentColor; }
   .date-nav { margin:0 0 18px; }
   .date-nav button { min-width:44px; }
   button { color:inherit; font:inherit; cursor:pointer; border:0; border-radius:6px; background:var(--tile); min-height:44px; padding:6px 12px; }
@@ -31,20 +31,22 @@
   .timeline { display:grid; gap:10px; }
   .timeline button { display:grid; grid-template-columns:minmax(5.25rem, 25%) 1fr; align-items:center; gap:12px; padding:12px 14px; text-align:left; }
   .timeline small { display:block; }
-  #view { touch-action:pan-y; }
+  .log-entry { user-select:none; -webkit-touch-callout:none; }
+  .log-entry:focus-within { outline:2px solid var(--or); outline-offset:2px; }
   .empty { padding:16px 0; color:var(--sub); }
 </style>
 <main>
   <header><h1><span>ALL</span> Calendar</h1><small>サンプルデータ</small></header>
-  <nav aria-label="表示の切り替え"><button id="month" type="button">月表示</button><button id="today" type="button">今日</button></nav>
-  <div class="cover" id="cover"><h2>MONTHLY</h2><span class="cover-icon" aria-hidden="true">🗓️</span></div>
+  <nav aria-label="表示の切り替え">
+    <div class="modes"><button id="month" type="button">MONTHLY</button><button id="day" type="button">DAILY</button></div>
+    <button id="today" type="button">今日</button>
+  </nav>
   <section id="view" aria-label="ライフログの表示" aria-live="polite"></section>
 </main>
 <script>
   const view = document.querySelector('#view');
-  const cover = document.querySelector('#cover');
-  const coverTitle = cover.querySelector('h2');
-  const coverIcon = cover.querySelector('.cover-icon');
+  const monthButton = document.querySelector('#month');
+  const dayButton = document.querySelector('#day');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const today = new Date();
   const dateAt = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
@@ -111,12 +113,29 @@
     if (!entries.length) return element('p', search ? '一致する記録がありません' : '記録はありません', view, 'empty');
     const list = element('div', '', view, 'timeline');
     for (const log of entries) {
-      const row = button(list, '', () => {
-        if (search) return openDay(log.date);
+      const label = `${search ? dayLabel.format(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`;
+      const openSearch = () => {
         query = log.title;
         mode = 'search';
         render();
-      }, `${search ? dayLabel.format(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`);
+      };
+      const row = button(list, '', event => {
+        if (search) openDay(log.date);
+        else if (event.detail === 0) openSearch();
+      }, search ? label : `${label}、長押しでタイトル検索`);
+      if (!search) {
+        row.classList.add('log-entry');
+        row.addEventListener('contextmenu', event => event.preventDefault());
+        row.addEventListener('pointerdown', event => {
+          if (event.pointerType === 'touch' || event.button !== 0) return;
+          startHold(row, event.clientX, event.clientY, openSearch);
+        });
+        row.addEventListener('touchstart', event => {
+          if (event.touches.length !== 1) return;
+          const touch = event.touches[0];
+          startHold(row, touch.clientX, touch.clientY, openSearch);
+        }, { passive:true });
+      }
       const timing = element('span', '', row);
       if (search) element('small', dayLabel.format(log.date), timing);
       element('time', log.time, timing);
@@ -139,31 +158,52 @@
   }
   let renderedMode;
   let viewAnimation;
-  let coverAnimation;
   function render(direction = 0) {
     const firstRender = !renderedMode;
     const changedMode = renderedMode !== mode;
     renderedMode = mode;
     viewAnimation?.cancel();
-    if (changedMode) {
-      coverAnimation?.cancel();
-      coverTitle.textContent = mode === 'month' ? 'MONTHLY' : mode === 'day' ? 'DAILY' : 'SEARCH';
-      coverIcon.textContent = mode === 'month' ? '🗓️' : mode === 'day' ? '📅' : '🔍';
-    }
+    monthButton.setAttribute('aria-pressed', String(mode === 'month'));
+    dayButton.setAttribute('aria-pressed', String(mode !== 'month'));
     renderContent();
     if (firstRender || motion.matches || !view.animate || (!changedMode && !direction)) return;
     const from = direction ? `translateX(${direction * 18}px)` : 'translateY(8px)';
     const options = { duration:300, easing:'cubic-bezier(.2,.65,.3,1)' };
     viewAnimation = view.animate([{ opacity:.4, transform:from }, { opacity:1, transform:'none' }], options);
-    if (changedMode) coverAnimation = cover.animate([{ opacity:.55, transform:'translateY(5px)' }, { opacity:1, transform:'none' }], options);
   }
-  document.querySelector('#month').addEventListener('click', () => { mode = 'month'; render(); });
+  let hold;
+  function cancelHold() {
+    if (hold) clearTimeout(hold.timer);
+    hold = undefined;
+  }
+  function startHold(row, x, y, action) {
+    cancelHold();
+    hold = { x, y, timer:setTimeout(() => {
+      hold = undefined;
+      gesture = undefined;
+      if (row.isConnected && mode === 'day') action();
+    }, 500) };
+  }
+  function checkHoldMovement(x, y) {
+    if (hold && Math.hypot(x - hold.x, y - hold.y) > 10) cancelHold();
+  }
+  document.addEventListener('pointermove', event => checkHoldMovement(event.clientX, event.clientY));
+  document.addEventListener('pointerup', event => { if (event.pointerType !== 'touch') cancelHold(); });
+  document.addEventListener('pointercancel', event => { if (event.pointerType !== 'touch') cancelHold(); });
+  monthButton.addEventListener('click', () => { mode = 'month'; render(); });
+  dayButton.addEventListener('click', () => openDay(day));
   document.querySelector('#today').addEventListener('click', () => openDay(dateAt(today)));
-  view.addEventListener('touchstart', event => {
+  document.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) cancelHold();
     gesture = mode === 'day' && event.touches.length === 1 ? event.touches[0] : undefined;
   }, { passive:true });
-  view.addEventListener('touchcancel', () => { gesture = undefined; });
-  view.addEventListener('touchend', event => {
+  document.addEventListener('touchmove', event => {
+    const touch = event.touches[0];
+    if (touch) checkHoldMovement(touch.clientX, touch.clientY);
+  }, { passive:true });
+  document.addEventListener('touchcancel', () => { gesture = undefined; cancelHold(); });
+  document.addEventListener('touchend', event => {
+    cancelHold();
     const start = gesture;
     gesture = undefined;
     if (!start || mode !== 'day') return;
