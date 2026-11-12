@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ALL Calendar</title>
+<style>
+  :root { color-scheme: dark; --bg:#1a1b18; --tile:#262722; --fg:#dddbd0; --sub:#a5a498; --or:#ff6a1f; --ye:#f2d21f; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--fg); font:500 16px/1.55 system-ui,sans-serif; }
+  main { max-width:34rem; margin:auto; }
+  header, nav { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  header { border-bottom:1px solid #45463d; padding-bottom:12px; }
+  h1, h2, p { margin:0; }
+  h1 { font-size:1.25rem; }
+  h1 span { color:var(--or); }
+  h2 { font-size:1.12rem; text-align:center; }
+  small, time, .muted { color:var(--sub); }
+  nav { margin:16px 0 12px; }
+  button { color:inherit; font:inherit; cursor:pointer; border:0; border-radius:6px; background:var(--tile); min-height:44px; padding:6px 12px; }
+  button:focus-visible { outline:2px solid var(--or); outline-offset:2px; }
+  .grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; text-align:center; }
+  .grid button { display:grid; justify-items:center; align-content:center; min-height:56px; padding:4px 0; }
+  .grid button[aria-current] { box-shadow:inset 0 0 0 1px var(--or); }
+  .count { color:var(--ye); font-size:.75rem; }
+  .count.zero { color:var(--sub); }
+  .timeline { display:grid; gap:6px; }
+  .timeline button { display:grid; grid-template-columns:6.8rem 1fr; align-items:center; gap:8px; text-align:left; }
+  .timeline small { display:block; }
+  #view { touch-action:pan-y; }
+  .empty { padding:16px 0; color:var(--sub); }
+</style>
+<main>
+  <header><h1><span>ALL</span> Calendar</h1><small>サンプルデータ</small></header>
+  <nav aria-label="表示の切り替え"><button id="month">月表示</button><button id="today">今日</button></nav>
+  <section id="view" aria-label="ライフログの表示"></section>
+</main>
+<script>
+  const view = document.querySelector('#view');
+  const today = new Date();
+  const dateAt = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset);
+  const monthAt = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
+  const key = date => [date.getFullYear(), date.getMonth() + 1, date.getDate()].join('-');
+  const same = (a, b) => key(a) === key(b);
+  const monthLabel = new Intl.DateTimeFormat('ja-JP', { year:'numeric', month:'long' });
+  const dayLabel = new Intl.DateTimeFormat('ja-JP', { month:'long', day:'numeric', weekday:'short' });
+  const logs = [
+    [-4,'07:10','起床','起床'], [-4,'09:15','タスク','開発メモを整理'],
+    [-2,'07:02','起床','起床'], [-2,'11:20','発信','佐藤さん'],
+    [-1,'08:45','予定','朝の打ち合わせ'], [-1,'15:30','着信','佐藤さん'],
+    [0,'06:55','起床','起床'], [0,'09:00','予定','朝の打ち合わせ'],
+    [0,'10:20','タスク','開発メモを整理'], [0,'14:35','発信','佐藤さん'],
+    [1,'09:30','予定','開発レビュー'], [1,'13:00','予定','歯科'],
+    [3,'09:00','予定','朝の打ち合わせ（週次）'], [7,'18:00','予定','買い物']
+  ].map(([offset, time, kind, title]) => ({date:dateAt(today, offset), time, kind, title}));
+  let day = dateAt(today);
+  let month = monthAt(day);
+  let mode = 'month';
+  let query = '';
+  let gesture;
+
+  function element(tag, label, parent, className) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    node.textContent = label;
+    parent.append(node);
+    return node;
+  }
+  function button(parent, label, action, accessibleLabel = label) {
+    const node = element('button', label, parent);
+    node.type = 'button';
+    node.setAttribute('aria-label', accessibleLabel);
+    node.addEventListener('click', action);
+    return node;
+  }
+  function heading(label, unit, move) {
+    const nav = element('nav', '', view);
+    button(nav, '‹', () => move(-1), `前${unit}`);
+    element('h2', label, nav);
+    button(nav, '›', () => move(1), `次の${unit}`);
+  }
+  function openDay(date) {
+    day = date;
+    month = monthAt(day);
+    mode = 'day';
+    render();
+  }
+  function moveDay(offset) { openDay(dateAt(day, offset)); }
+  function renderMonth() {
+    heading(monthLabel.format(month), '月', offset => { month = monthAt(month, offset); render(); });
+    const grid = element('div', '', view, 'grid');
+    for (const label of '日月火水木金土') element('small', label, grid);
+    for (let i = 0; i < month.getDay(); i++) element('span', '', grid);
+    for (let date = month; date.getMonth() === month.getMonth(); date = dateAt(date, 1)) {
+      const count = logs.filter(log => same(log.date, date)).length;
+      const cell = button(grid, String(date.getDate()), () => openDay(date), `${dayLabel.format(date)} ${count}件`);
+      element('span', `${count}件`, cell, count ? 'count' : 'count zero');
+      if (same(today, date)) cell.setAttribute('aria-current', 'date');
+    }
+  }
+  function renderLogs(entries, search) {
+    if (!entries.length) return element('p', search ? '一致する記録がありません' : '記録はありません', view, 'empty');
+    const list = element('div', '', view, 'timeline');
+    for (const log of entries) {
+      const row = button(list, '', () => {
+        if (search) return openDay(log.date);
+        query = log.title;
+        mode = 'search';
+        render();
+      }, `${search ? dayLabel.format(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`);
+      const timing = element('span', '', row);
+      if (search) element('small', dayLabel.format(log.date), timing);
+      element('time', log.time, timing);
+      const info = element('span', log.title, row);
+      element('small', log.kind, info);
+    }
+  }
+  function render() {
+    view.replaceChildren();
+    if (mode === 'month') return renderMonth();
+    if (mode === 'day') {
+      heading(dayLabel.format(day), '日', moveDay);
+      return renderLogs(logs.filter(log => same(log.date, day)), false);
+    }
+    const nav = element('nav', '', view);
+    button(nav, '‹ 1日表示', () => openDay(day));
+    element('h2', `「${query}」の記録`, nav);
+    const needle = query.normalize('NFKC').toLocaleLowerCase('ja');
+    renderLogs(logs.filter(log => log.title.normalize('NFKC').toLocaleLowerCase('ja').includes(needle)), true);
+  }
+  document.querySelector('#month').addEventListener('click', () => { mode = 'month'; render(); });
+  document.querySelector('#today').addEventListener('click', () => openDay(dateAt(today)));
+  view.addEventListener('touchstart', event => {
+    gesture = mode === 'day' && event.touches.length === 1 ? event.touches[0] : undefined;
+  }, { passive:true });
+  view.addEventListener('touchcancel', () => { gesture = undefined; });
+  view.addEventListener('touchend', event => {
+    const start = gesture;
+    gesture = undefined;
+    if (!start || mode !== 'day') return;
+    const end = Array.from(event.changedTouches).find(touch => touch.identifier === start.identifier);
+    if (!end) return;
+    const dx = end.clientX - start.clientX;
+    const dy = end.clientY - start.clientY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (event.cancelable) event.preventDefault();
+    moveDay(dx < 0 ? 1 : -1);
+  }, { passive:false });
+  render();
+</script>
+</html>
