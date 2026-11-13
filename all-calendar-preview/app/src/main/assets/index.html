@@ -6,32 +6,37 @@
 <style>
   :root { color-scheme: dark; --bg:#1a1b18; --tile:#262722; --fg:#dddbd0; --sub:#a5a498; --or:#ff6a1f; --ye:#f2d21f; }
   * { box-sizing:border-box; }
-  body { margin:0; min-height:100vh; padding:24px 16px 36px; background:var(--bg); color:var(--fg); font:500 16px/1.55 system-ui,sans-serif; touch-action:pan-y; }
-  main { max-width:34rem; margin:auto; }
+  body { margin:0; background:#171814; color:var(--fg); font:400 16px/1.5 Roboto,system-ui,sans-serif; touch-action:pan-y; }
+  main { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; padding:18px clamp(12px, 4vw, 32px) max(12px, env(safe-area-inset-bottom)); }
   header, nav { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  header { border-bottom:1px solid #45463d; padding-bottom:16px; }
+  header { padding-bottom:12px; }
   h1, h2, p { margin:0; }
-  h1 { font-size:1.25rem; }
+  h1 { font-size:1rem; font-weight:700; letter-spacing:.025em; }
   h1 span { color:var(--or); }
   h2 { font-size:1.12rem; text-align:center; }
   small, time, .muted { color:var(--sub); }
-  nav { margin:16px 0 20px; }
+  nav { margin:12px 0; }
   .modes { display:flex; flex-wrap:wrap; gap:8px; }
-  .modes button { font-size:.8rem; letter-spacing:.08em; }
-  .modes button[aria-pressed="true"] { color:var(--ye); box-shadow:inset 0 0 0 1px currentColor; }
-  .date-nav { margin:0 0 18px; }
-  .date-nav button { min-width:44px; }
+  .modes button { font:600 .72rem/1 Roboto,system-ui,sans-serif; letter-spacing:.14em; color:var(--sub); background:transparent; border-radius:0; border-bottom:2px solid transparent; }
+  .modes button[aria-pressed="true"] { color:var(--fg); border-bottom-color:var(--or); }
+  #view { flex:1; display:flex; flex-direction:column; }
+  .date-nav { margin:0 0 12px; }
+  .date-nav h2 { font:300 clamp(2rem, 9vw, 4rem)/1.12 Roboto,'Segoe UI',sans-serif; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+  .date-nav button { min-width:44px; background:transparent; font-size:1.6rem; }
   button { color:inherit; font:inherit; cursor:pointer; border:0; border-radius:6px; background:var(--tile); min-height:44px; padding:6px 12px; }
   button:focus-visible { outline:2px solid var(--or); outline-offset:2px; }
-  .grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px 0; padding:12px 4px; border:1px solid #c7b59f; background:#f3e7d5; text-align:center; }
-  .grid > small { color:#56483d; font-size:.7rem; padding-bottom:6px; }
-  .grid button { display:grid; justify-items:center; align-content:center; gap:2px; min-width:0; min-height:62px; padding:4px 0; background:transparent; color:#a94226; }
-  .grid button[aria-current] { box-shadow:inset 0 0 0 1px #a94226; }
-  .date-number { font:400 clamp(1.25rem, 6.7vw, 2.2rem)/1 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
-  .grid .count { color:#713320; }
-  .count { color:var(--ye); font-size:.75rem; }
+  .grid { flex:1; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:30px; grid-auto-rows:minmax(51px,1fr); text-align:center; }
+  .grid > small { font-size:.7rem; align-self:center; }
+  .grid > button, .grid > span { border-top:1px solid #383930; }
+  .grid button { display:grid; justify-items:center; align-content:center; gap:8px; min-width:0; padding:4px 0; background:transparent; border-radius:0; }
+  .grid button[aria-current] .date-number { color:var(--or); }
+  .grid button[data-selected] { background:#26251e; }
+  .date-number { font:300 clamp(1.15rem, 6.5vw, 2.35rem)/1 Roboto,'Segoe UI',sans-serif; font-variant-numeric:tabular-nums; }
+  .dots { display:flex; align-items:center; justify-content:center; gap:3px; min-height:5px; }
+  .dots i { width:4px; height:4px; border-radius:50%; background:var(--or); }
   .timeline { display:grid; gap:10px; }
-  .timeline button { display:grid; grid-template-columns:minmax(5.25rem, 25%) 1fr; align-items:center; gap:12px; padding:12px 14px; text-align:left; }
+  .timeline button { display:grid; grid-template-columns:minmax(4rem, 19%) 1fr; align-items:center; gap:16px; padding:16px 4px; text-align:left; background:transparent; border-radius:0; border-bottom:1px solid #383930; }
+  .timeline time { font-variant-numeric:tabular-nums; }
   .timeline small { display:block; }
   .log-entry { user-select:none; -webkit-touch-callout:none; }
   .log-entry:focus-within { outline:2px solid var(--or); outline-offset:2px; }
@@ -41,7 +46,6 @@
   <header><h1><span>ALL</span> Calendar</h1><small>サンプルデータ</small></header>
   <nav aria-label="表示の切り替え">
     <div class="modes"><button id="month" type="button">MONTHLY</button><button id="day" type="button">DAILY</button></div>
-    <button id="today" type="button">今日</button>
   </nav>
   <section id="view" aria-label="ライフログの表示" aria-live="polite"></section>
 </main>
@@ -55,8 +59,8 @@
   const monthAt = (date, offset = 0) => new Date(date.getFullYear(), date.getMonth() + offset, 1);
   const key = date => [date.getFullYear(), date.getMonth() + 1, date.getDate()].join('-');
   const same = (a, b) => key(a) === key(b);
-  const monthLabel = new Intl.DateTimeFormat('ja-JP', { year:'numeric', month:'long' });
-  const dayLabel = new Intl.DateTimeFormat('ja-JP', { month:'long', day:'numeric', weekday:'short' });
+  const monthLabel = date => `${date.getFullYear()}.${date.getMonth() + 1}`;
+  const dayLabel = date => `${monthLabel(date)}.${date.getDate()}`;
   const logs = [
     [-4,'07:10','起床','起床'], [-4,'09:15','タスク','開発メモを整理'],
     [-2,'07:02','起床','起床'], [-2,'11:20','発信','佐藤さん'],
@@ -100,24 +104,19 @@
   }
   function moveDay(offset) { openDay(dateAt(day, offset), offset); }
   function renderMonth() {
-    heading(monthLabel.format(month), '月', offset => { month = monthAt(month, offset); render(offset); });
+    heading(monthLabel(month), '月', offset => { month = monthAt(month, offset); render(offset); });
     const grid = element('div', '', view, 'grid');
     for (const label of '月火水木金土日') element('small', label, grid);
     const leadingDays = (month.getDay() + 6) % 7;
     for (let i = 0; i < leadingDays; i++) element('span', '', grid);
     for (let date = month; date.getMonth() === month.getMonth(); date = dateAt(date, 1)) {
       const count = logs.filter(log => same(log.date, date)).length;
-      const cell = button(grid, '', () => openDay(date), `${dayLabel.format(date)} ${count}件`);
-      const number = element('span', String(date.getDate()), cell, 'date-number');
-      element('span', count ? `${count}件` : '\u00a0', cell, 'count');
-      if (!motion.matches && number.animate) {
-        number.animate([
-          { transform:'scale(.94)', webkitTextStrokeWidth:'0px', offset:0 },
-          { transform:'scale(1.09,1.27)', webkitTextStrokeWidth:'2.6px', color:'#b84927', offset:.45 },
-          { transform:'scale(.98,1.03)', webkitTextStrokeWidth:'.35px', offset:.8 },
-          { transform:'none', webkitTextStrokeWidth:'0px', offset:1 }
-        ], { duration:530, delay:Math.floor((leadingDays + date.getDate() - 1) / 7) * 40, easing:'ease-in-out' });
-      }
+      const cell = button(grid, '', () => openDay(date), `${dayLabel(date)}、記録${count}件`);
+      element('span', String(date.getDate()), cell, 'date-number');
+      const dots = element('span', '', cell, 'dots');
+      dots.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < Math.min(count, 5); i++) element('i', '', dots);
+      if (same(day, date)) cell.setAttribute('data-selected', '');
       if (same(today, date)) cell.setAttribute('aria-current', 'date');
     }
   }
@@ -125,7 +124,7 @@
     if (!entries.length) return element('p', search ? '一致する記録がありません' : '記録はありません', view, 'empty');
     const list = element('div', '', view, 'timeline');
     for (const log of entries) {
-      const label = `${search ? dayLabel.format(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`;
+      const label = `${search ? dayLabel(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`;
       const openSearch = () => {
         query = log.title;
         mode = 'search';
@@ -149,7 +148,7 @@
         }, { passive:true });
       }
       const timing = element('span', '', row);
-      if (search) element('small', dayLabel.format(log.date), timing);
+      if (search) element('small', dayLabel(log.date), timing);
       element('time', log.time, timing);
       const info = element('span', log.title, row);
       element('small', log.kind, info);
@@ -159,7 +158,7 @@
     view.replaceChildren();
     if (mode === 'month') return renderMonth();
     if (mode === 'day') {
-      heading(dayLabel.format(day), '日', moveDay);
+      heading(dayLabel(day), '日', moveDay);
       return renderLogs(logs.filter(log => same(log.date, day)), false);
     }
     const nav = element('nav', '', view);
@@ -179,9 +178,16 @@
     dayButton.setAttribute('aria-pressed', String(mode !== 'month'));
     renderContent();
     if (firstRender || motion.matches || !view.animate || (!changedMode && !direction)) return;
-    const from = direction ? `translateX(${direction * 18}px)` : 'translateY(8px)';
-    const options = { duration:300, easing:'cubic-bezier(.2,.65,.3,1)' };
-    viewAnimation = view.animate([{ opacity:.4, transform:from }, { opacity:1, transform:'none' }], options);
+    const from = direction ? `translateX(${direction * 24}px)` : 'translateY(8px)';
+    const options = { duration:340, easing:'cubic-bezier(.19,1,.22,1)' };
+    viewAnimation = view.animate([{ opacity:.55, transform:from }, { opacity:1, transform:'none' }], options);
+    if (changedMode && mode === 'day') {
+      view.querySelectorAll('.timeline button').forEach((row, index) => {
+        row.animate([{ opacity:0, transform:'translateY(14px)' }, { opacity:1, transform:'none' }], {
+          ...options, delay:Math.min(index, 8) * 34 + 60, fill:'backwards'
+        });
+      });
+    }
   }
   let hold;
   function cancelHold() {
@@ -204,7 +210,6 @@
   document.addEventListener('pointercancel', event => { if (event.pointerType !== 'touch') cancelHold(); });
   monthButton.addEventListener('click', () => { mode = 'month'; render(); });
   dayButton.addEventListener('click', () => openDay(day));
-  document.querySelector('#today').addEventListener('click', () => openDay(dateAt(today)));
   document.addEventListener('touchstart', event => {
     if (event.touches.length !== 1) cancelHold();
     gesture = mode === 'day' && event.touches.length === 1 ? event.touches[0] : undefined;
