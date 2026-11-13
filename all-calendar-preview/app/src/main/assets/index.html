@@ -53,6 +53,10 @@
   .grid button[aria-current] .date-number { color:var(--fg); border-color:var(--fg); }
   .grid button[data-selected] .date-number { background:#393027; border:2px solid var(--or); }
   .dots i { background:var(--ye); }
+  .grid .date-number { position:relative; border:0; isolation:isolate; }
+  .date-number::before { content:''; position:absolute; inset:0; border-radius:50%; background:conic-gradient(var(--ye) var(--progress,0%), #535348 0); mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1px)); }
+  .grid button[data-selected] .date-number { border:0; box-shadow:0 0 0 2px var(--or); }
+  .action-label { color:var(--ye); font-size:.75rem; }
   #agenda { position:fixed; inset:auto 0 0; z-index:2; max-height:52vh; max-height:52dvh; overflow:auto; overscroll-behavior:contain; touch-action:pan-y; color:var(--fg); background:#262722; border-radius:28px 28px 0 0; padding:12px clamp(16px,5vw,40px) max(14px,env(safe-area-inset-bottom)); box-shadow:0 -12px 42px #0d0d0b99; }
   .agenda-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:-12px; z-index:1; background:#262722; }
   .agenda-heading h2 { font-size:1.55rem; font-weight:550; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
@@ -89,9 +93,11 @@
     [-1,'08:45','予定','朝の打ち合わせ'], [-1,'15:30','着信','佐藤さん'],
     [0,'06:55','起床','起床'], [0,'09:00','予定','朝の打ち合わせ'],
     [0,'10:20','タスク','開発メモを整理'], [0,'14:35','発信','佐藤さん'],
-    [1,'09:30','予定','開発レビュー'], [1,'13:00','予定','歯科'],
+    [1,'09:30','予定','開発レビュー','start'], [1,'13:00','予定','歯科'],
+    [1,'16:00','予定','佐藤さんに電話','call'],
     [3,'09:00','予定','朝の打ち合わせ（週次）'], [7,'18:00','予定','買い物']
-  ].map(([offset, time, kind, title]) => ({date:dateAt(today, offset), time, kind, title}));
+  ].map(([offset, time, kind, title, action]) => ({date:dateAt(today, offset), time, kind, title, action, started:false}));
+  const ringCapacity = 5;
   let day = dateAt(today);
   let month = monthAt(day);
   let mode = 'month';
@@ -117,9 +123,14 @@
     view.querySelector(`[data-date="${key(date)}"]`)?.setAttribute('data-selected', '');
     agenda.replaceChildren();
     const header = element('div', '', agenda, 'agenda-heading');
-    element('h2', dayLabel(day), header);
+    const title = element('div', '', header);
+    element('h2', 'これからの予定', title);
+    element('small', `${dayLabel(day)} 以降`, title);
     button(header, '閉じる', closeAgenda);
-    renderLogs(logs.filter(log => same(log.date, day)), false, agenda);
+    const now = new Date();
+    const since = Math.max(+now, +day);
+    const upcoming = logs.filter(log => log.kind === '予定' && logTime(log) >= since);
+    renderLogs(upcoming, false, agenda, true);
     agenda.scrollTop = 0;
     agenda.hidden = false;
     document.body.classList.add('agenda-open');
@@ -160,6 +171,10 @@
     render(direction);
   }
   function moveDay(offset) { openDay(dateAt(day, offset), offset); }
+  function logTime(log) {
+    const [hour, minute] = log.time.split(':').map(Number);
+    return +new Date(log.date.getFullYear(), log.date.getMonth(), log.date.getDate(), hour, minute);
+  }
   function renderMonth() {
     heading(monthLabel(month), '月', offset => { closeAgenda(); month = monthAt(month, offset); render(offset); });
     const grid = element('div', '', view, 'grid');
@@ -167,11 +182,14 @@
     const leadingDays = (month.getDay() + 6) % 7;
     for (let i = 0; i < leadingDays; i++) element('span', '', grid);
     for (let date = month; date.getMonth() === month.getMonth(); date = dateAt(date, 1)) {
-      const count = logs.filter(log => same(log.date, date)).length;
-      const cell = button(grid, '', () => showAgenda(date), `${dayLabel(date)}、記録${count}件`);
+      const entries = logs.filter(log => same(log.date, date));
+      const count = entries.length;
+      const planned = entries.filter(log => log.kind === '予定').length;
+      const cell = button(grid, '', () => showAgenda(date), `${dayLabel(date)}、予定${planned}件、記録${count}件`);
       cell.setAttribute('data-date', key(date));
       if (count) cell.setAttribute('data-has-logs', '');
-      element('span', String(date.getDate()), cell, 'date-number');
+      const number = element('span', String(date.getDate()), cell, 'date-number');
+      number.style.setProperty('--progress', `${Math.min(planned / ringCapacity, 1) * 100}%`);
       const dots = element('span', '', cell, 'dots');
       dots.setAttribute('aria-hidden', 'true');
       for (let i = 0; i < Math.min(count, 5); i++) element('i', '', dots);
@@ -179,8 +197,8 @@
       if (same(today, date)) cell.setAttribute('aria-current', 'date');
     }
   }
-  function renderLogs(entries, search, container = view) {
-    if (!entries.length) return element('p', search ? '一致する記録がありません' : '記録はありません', container, 'empty');
+  function renderLogs(entries, search, container = view, upcoming = false) {
+    if (!entries.length) return element('p', search ? '一致する記録がありません' : upcoming ? 'これからの予定はありません' : '記録はありません', container, 'empty');
     const list = element('div', '', container, 'timeline');
     for (const log of entries) {
       const label = `${search ? dayLabel(log.date) + ' ' : ''}${log.time} ${log.kind} ${log.title}`;
@@ -192,6 +210,11 @@
       };
       const row = button(list, '', event => {
         if (search) openDay(log.date);
+        else if (upcoming && log.action === 'call') actionLabel.textContent = '電話アプリを開く（サンプル）';
+        else if (upcoming && log.action === 'start') {
+          log.started = true;
+          actionLabel.textContent = '開始済み（サンプル）';
+        }
         else if (event.detail === 0) openSearch();
       }, search ? label : `${label}、長押しでタイトル検索`);
       if (!search) {
@@ -208,10 +231,11 @@
         }, { passive:true });
       }
       const timing = element('span', '', row);
-      if (search) element('small', dayLabel(log.date), timing);
+      if (search || upcoming) element('small', dayLabel(log.date), timing);
       element('time', log.time, timing);
       const info = element('span', log.title, row);
       element('small', log.kind, info);
+      const actionLabel = upcoming && log.action ? element('span', log.action === 'call' ? '電話' : log.started ? '開始済み（サンプル）' : 'kizamuで開始', info, 'action-label') : null;
     }
   }
   function renderContent() {
