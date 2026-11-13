@@ -41,24 +41,24 @@
   .log-entry { user-select:none; -webkit-touch-callout:none; }
   .log-entry:focus-within { outline:2px solid var(--or); outline-offset:2px; }
   .empty { padding:16px 0; color:var(--sub); }
-  body { background:radial-gradient(ellipse at 93% 100%, #bd4c16 0%, transparent 60%), linear-gradient(153deg,#210e0e,#5d1a15 48%,#8a2911); color:#fff5e9; }
-  .modes button { color:#f6c4b3; }
-  .modes button[aria-pressed="true"] { color:#fff5e9; border-bottom-color:#ffab55; }
-  .grid > small, header small { color:#f4c4b2; }
+  body { background:radial-gradient(ellipse at 95% 100%, #302a1f 0%, transparent 60%), var(--bg); }
+  .modes button { color:var(--sub); }
+  .modes button[aria-pressed="true"] { color:var(--fg); border-bottom-color:var(--or); }
+  .grid > small, header small { color:var(--sub); }
   .grid > button, .grid > span { border-top:0; }
   .grid button { gap:5px; }
   .grid button[data-selected] { background:transparent; }
-  .date-number { display:grid; place-items:center; width:min(10vw, 3.8rem); aspect-ratio:1; border:1px solid #ffd8b66b; border-radius:50%; font-size:clamp(1rem,5vw,1.8rem); }
-  .grid button[data-has-logs] .date-number { border-color:#ffad61; }
-  .grid button[aria-current] .date-number { color:#fff5e9; border-color:#fff5e9; }
-  .grid button[data-selected] .date-number { background:#28110e; border:2px solid #fff5e9; }
-  .dots i { background:#ffc082; }
-  #agenda { position:fixed; inset:auto 0 0; z-index:2; max-height:52vh; max-height:52dvh; overflow:auto; overscroll-behavior:contain; touch-action:pan-y; color:#331a16; background:#fff1e3; border-radius:28px 28px 0 0; padding:12px clamp(16px,5vw,40px) max(14px,env(safe-area-inset-bottom)); box-shadow:0 -12px 42px #24090750; }
-  .agenda-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:-12px; z-index:1; background:#fff1e3; }
+  .date-number { display:grid; place-items:center; width:min(10vw, 3.8rem); aspect-ratio:1; border:1px solid #535348; border-radius:50%; font-size:clamp(1rem,5vw,1.8rem); }
+  .grid button[data-has-logs] .date-number { border-color:var(--or); }
+  .grid button[aria-current] .date-number { color:var(--fg); border-color:var(--fg); }
+  .grid button[data-selected] .date-number { background:#393027; border:2px solid var(--or); }
+  .dots i { background:var(--ye); }
+  #agenda { position:fixed; inset:auto 0 0; z-index:2; max-height:52vh; max-height:52dvh; overflow:auto; overscroll-behavior:contain; touch-action:pan-y; color:var(--fg); background:#262722; border-radius:28px 28px 0 0; padding:12px clamp(16px,5vw,40px) max(14px,env(safe-area-inset-bottom)); box-shadow:0 -12px 42px #0d0d0b99; }
+  .agenda-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:-12px; z-index:1; background:#262722; }
   .agenda-heading h2 { font-size:1.55rem; font-weight:550; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
-  .agenda-heading button { background:transparent; color:#693023; }
-  #agenda small, #agenda time, #agenda .empty { color:#794939; }
-  #agenda .timeline button { border-color:#e8cbb9; }
+  .agenda-heading button { background:transparent; color:var(--fg); }
+  #agenda small, #agenda time, #agenda .empty { color:var(--sub); }
+  #agenda .timeline button { border-color:#45463d; }
   body.agenda-open main { padding-bottom:calc(52vh + 16px); }
   body.agenda-open .grid { grid-auto-rows:minmax(53px,1fr); }
 </style>
